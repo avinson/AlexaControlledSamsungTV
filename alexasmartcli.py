@@ -28,7 +28,7 @@ options, args = _parse_options()
 if len(args) == 0:
     print('please specify an action')
     exit()
-    
+
 if args[0] == 'login':
     print("Login to your alexasmarttv.tk account")
     email = input("Email: ")
@@ -58,8 +58,8 @@ if args[0] == 'reset':
     os.remove('.auth/private.pem.key')
     os.remove('.auth/certificate.pem.crt')
     print("Reset device. you will now need to relogin and register this device")
-    
-        
+
+
 if args[0] == 'register':
     if not prefHelper.loggedIn():
         print('Error: please log in before registering device.')
@@ -68,15 +68,15 @@ if args[0] == 'register':
         tvs = []
         for tv in tvconfig.tvs:
             tvs.append({'name':tv['tv_name'], 'mac_address': tv['tv_mac_address']})
-            
+
         payload ={"name": tvconfig.device_name, "tvs": tvs}
         reregister = False
         if prefHelper.deviceRegistered():
             payload['uuid'] = prefHelper.deviceUUID()
             reregister = True
-            
+
         headers = {'content-type': 'application/json', 'jwt': prefHelper.deviceToken()}
-        
+
         response = requests.post(url + '/api/v1/register_device', data=json.dumps(payload), headers=headers)
         json_data = json.loads(response.text)
         if 'error' in json_data:
@@ -85,11 +85,11 @@ if args[0] == 'register':
             file = open('.auth/uuid','w')
             file.write(json_data['uuid'])
             file.close
-            
+
             file = open('.auth/private.pem.key','w')
             file.write(json_data['private_key'])
             file.close
-            
+
             file = open('.auth/certificate.pem.crt','w')
             file.write(json_data['pubic_certificate'])
             file.close
@@ -97,8 +97,8 @@ if args[0] == 'register':
                 print("device successfully reregistered.")
             else:
                 print("device successfully registered.")
-            
-            
+
+
 if args[0] == 'setup_cable':
     print("Setting up your cable.")
     zipcode = input("Enter Zipcode: ")
@@ -106,7 +106,7 @@ if args[0] == 'setup_cable':
     providerlist = []
     index = 0
     print("Providers found in your area: ")
-    
+
     for provider in json.loads(response.text):
         for device in provider["Devices"]:
             print(str(index+1) + ') ' + provider["Name"] + ("" if device["DeviceName"] == "" else "   (" +  device["DeviceName"] + ")"))
@@ -117,7 +117,7 @@ if args[0] == 'setup_cable':
     lineup = {}
     for channel in json.loads(response.text):
         full = channel["Channel"]["FullName"]
-        
+
         regex = re.compile('\(.+?\)')
         full = regex.sub('', full).lower()
         full = full.replace('&','and')
@@ -127,16 +127,16 @@ if args[0] == 'setup_cable':
 
         pattern = re.compile('([^\s\w]|_)+')
         full = pattern.sub('', full)
-        
+
         name = channel["Channel"]["Name"].lower()
         name = pattern.sub('', name)
-        num = channel["Channel"]["Number"] 
+        num = channel["Channel"]["Number"]
 
         if " hdtv" in full or " hd" in full:
             full = full.replace(' hdtv','')
             full = full.replace(' hd','')
             full = full.strip()
-            
+
             if name.endswith("hd"):
                 name = name[:-2]
             elif name.endswith("d"):
@@ -153,8 +153,8 @@ if args[0] == 'setup_cable':
                 lineup[full] = (lineup[full][0],lineup[full][1],num,lineup[full][3])
             elif full not in lineup:
                 lineup[full] = (name,full,num,None)
-    sortedlist = sorted(lineup.values(), key=lambda x: (int(x[2]) if x[2] is not None else int(x[3])))
-   
+    sortedlist = sorted(lineup.values(), key=lambda x: (float(x[2]) if x[2] is not None else float(x[3])))
+
     with open('helpers/lineup.json', 'w') as outfile:
         json.dump(sortedlist, outfile)
     #for value in sortedlist:
@@ -169,5 +169,3 @@ if args[0] == 'start':
         print('Error: please log in before starting server.')
     else:
         mqtt_server.startServer()
-
-
